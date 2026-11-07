@@ -25,6 +25,16 @@ DB=ROOT/'us_data'/'quotes.sqlite3'
 MODELS=DB.parent/'models'
 NAMES={'5m':'5 MINUTES', '15m':'15 MINUTES','1h':'1 HOUR'}
 
+def call_snapshot():
+    import json
+    from shared_call_feed import fetch
+    config=json.loads((ROOT/'shared_feed.json').read_text(encoding='utf-8'))
+    if config.get('mode')=='personal_shared':
+        url=config.get('url')
+        if not url:raise ValueError('Shared feed is not configured')
+        return fetch(url)
+    return read_snapshot(DB)
+
 st.set_page_config(page_title='🌸 Blossom Bot · Live Viewer',page_icon='🌸',layout='wide',initial_sidebar_state='expanded')
 
 st.markdown('''<style>
@@ -149,7 +159,7 @@ def call_card(tf, view, snapshot_time):
         tier=call['current_tier']
         first=call['first_side']
         title=f'{tier} {side}' if fresh else f'SAVED {tier} {side}'
-        note=('Public market-price signal; collected independently from your personal dashboard. '
+        note=('Shared personal-dashboard call; original and current picks retain their source timestamps. '
               'LOCKED is a price tier, not a guarantee.')
         if not fresh:
             note='Saved call retained; no fresh quote confirms its present strength. '+note
@@ -268,9 +278,9 @@ training_summary_at_top()
 @st.fragment(run_every='8s')
 def live_view():
     try:
-        snapshot=read_snapshot(DB)
+        snapshot=call_snapshot()
     except Exception:
-        st.warning('The live local data feed is temporarily unavailable. The private bot may still be collecting data.')
+        st.warning('Personal dashboard feed offline or not configured. Public calls are paused; no independent or previous-round signal is substituted.')
         return
     if not snapshot['db_available']:
         st.info('Waiting for the private bot database. Start your normal collector on this PC; this viewer never creates or changes the database.')
@@ -278,6 +288,7 @@ def live_view():
     st.markdown('<div class="section-public">Live round countdowns</div>', unsafe_allow_html=True)
     st.iframe(timer_html(round(snapshot['time'] * 1000), snapshot['markets']), height=155, width='stretch')
     st.caption('Countdowns follow the same observed market rounds as the current calls below. Missing rounds stay unconfirmed; an ended round never rolls forward automatically.')
+    st.caption('Shared call feed - same saved journal as your personal dashboard. Source snapshot: '+fmt_time_seconds(snapshot.get('source_time',snapshot['time'])))
     timestamp=fmt_time(snapshot['time'])
     st.markdown(f'<div class="section-public">✿ Current calls <span style="float:right;color:#b28ca9;font-size:11px;font-weight:500">Snapshot {escape(timestamp)} · updates about every 8 seconds</span></div>',unsafe_allow_html=True)
     columns=st.columns(3,gap='medium')
@@ -305,7 +316,7 @@ def live_view():
 def market_details_view():
     # More expensive chart refreshes independently of live call cards/timers.
     try:
-        snapshot=read_snapshot(DB)
+        snapshot=call_snapshot()
     except Exception:
         st.info('Local market chart temporarily unavailable.')
         return
