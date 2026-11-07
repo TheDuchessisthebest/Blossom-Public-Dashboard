@@ -5,6 +5,7 @@ verified active contract. No trading controls, database writes, APIs, or keys.
 """
 from __future__ import annotations
 
+import json
 import math
 import time
 
@@ -21,7 +22,7 @@ def seconds_to_next_boundary(now_utc: float, timeframe: str) -> int:
     return int((math.floor(now_utc / dur) + 1) * dur - math.floor(now_utc))
 
 
-def timer_html(server_epoch_ms: int | None = None) -> str:
+def timer_html(server_epoch_ms: int | None = None, markets: dict | None = None) -> str:
     """Self-contained HTML/CSS/JS for a stable phone clock.
 
     IMPORTANT: this HTML is trusted static source. Never interpolate market,
@@ -31,6 +32,11 @@ def timer_html(server_epoch_ms: int | None = None) -> str:
         server_epoch_ms = round(time.time() * 1000)
     if not isinstance(server_epoch_ms, int) or server_epoch_ms < 0:
         raise ValueError('Server timestamp must be a positive integer in milliseconds')
+    ends = {}
+    for tf in DURATIONS:
+        rnd = ((markets or {}).get(tf) or {}).get('round')
+        end = rnd.get('end') if rnd else None
+        ends[tf] = round(end * 1000) if isinstance(end, (int, float)) and math.isfinite(end) else None
     markup = r'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -71,9 +77,10 @@ html,body {margin:0;padding:0;background:transparent;color:#ffebf5;font-family:s
     lastSyncedMs = Math.max(lastSyncedMs, hostEpochMs + elapsed);
     return lastSyncedMs;
   }
+  const ends = __ROUND_ENDS__;
   const intervals = [ ['5m', 300], ['15m', 900], ['1h', 3600] ];
   const clocks = intervals.map(([key, secs]) => ({
-    secs, output: document.getElementById('clock-' + key),
+    key, secs, output: document.getElementById('clock-' + key),
     fill: document.getElementById('fill-' + key), lastText: null
   }));
   function pad2(n) { return String(n).padStart(2, '0'); }
@@ -81,7 +88,15 @@ html,body {margin:0;padding:0;background:transparent;color:#ffebf5;font-family:s
     const now = utcNowMs();
     for (const row of clocks) {
       const period = row.secs * 1000;
-      const boundary = (Math.floor(now / period) + 1) * period;
+      const boundary = ends[row.key];
+      const caption = row.output.parentElement.querySelector('.caption');
+      if (boundary === null) {
+        row.output.textContent = '--:--';
+        caption.textContent = 'WAITING FOR CURRENT ROUND';
+        row.fill.style.transform = 'scaleX(0)';
+        continue;
+      }
+      caption.textContent = now >= boundary ? 'ROUND ENDED ? WAITING FOR NEXT' : 'CURRENT CALL ROUND ENDS';
       const left = Math.max(0, Math.ceil((boundary - now) / 1000));
       const mins = Math.floor(left / 60);
       const sec = left % 60;
@@ -98,4 +113,4 @@ html,body {margin:0;padding:0;background:transparent;color:#ffebf5;font-family:s
   });
 })();
 </script></body></html>'''
-    return markup.replace('__SERVER_EPOCH_MS__', str(server_epoch_ms))
+    return markup.replace('__SERVER_EPOCH_MS__', str(server_epoch_ms)).replace('__ROUND_ENDS__', json.dumps(ends))

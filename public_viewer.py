@@ -256,21 +256,6 @@ def training_summary_at_top():
 
 training_summary_at_top()
 
-# Rendered outside the eight-second market-data fragment. This iframe stays
-# mounted while market prices and saved calls are refreshed independently.
-st.markdown('<div class="section-public">🌸 Live round countdowns</div>',unsafe_allow_html=True)
-try:
-    if hasattr(st, 'iframe'):
-        st.iframe(timer_html(), height=155, width='stretch')
-    else:
-        import streamlit.components.v1 as components
-        components.html(timer_html(), height=155, scrolling=False)
-except Exception:
-    st.caption('Countdown display is unavailable in this browser. Market data is available below.')
-st.caption('Countdowns are synchronized to the Windows host clock at page load (not the phone clock) and show scheduled UTC boundaries, not verified contract settlement times. Live-market verification appears below.')
-
-
-
 @st.fragment(run_every='8s')
 def live_view():
     try:
@@ -281,6 +266,9 @@ def live_view():
     if not snapshot['db_available']:
         st.info('Waiting for the private bot database. Start your normal collector on this PC; this viewer never creates or changes the database.')
         return
+    st.markdown('<div class="section-public">?? Live round countdowns</div>', unsafe_allow_html=True)
+    st.iframe(timer_html(round(snapshot['time'] * 1000), snapshot['markets']), height=155, width='stretch')
+    st.caption('Countdowns follow the same observed market rounds as the current calls below. Missing rounds stay unconfirmed; an ended round never rolls forward automatically.')
     timestamp=fmt_time(snapshot['time'])
     st.markdown(f'<div class="section-public">✿ Current calls <span style="float:right;color:#b28ca9;font-size:11px;font-weight:500">Snapshot {escape(timestamp)} · updates about every 8 seconds</span></div>',unsafe_allow_html=True)
     columns=st.columns(3,gap='medium')
