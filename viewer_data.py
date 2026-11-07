@@ -107,7 +107,7 @@ def _quote(con, market, now):
     q = rows[0]
     age=max(0,now-float(q['recorded_at']))
     bid,ask=q['bid'],q['ask']
-    valid=all(isinstance(v,(float,int)) and isfinite(v) and 0<=v<=1 for v in (bid,ask)) and bid<=ask
+    valid=all(isinstance(v,(float,int)) and isfinite(v) and 0<v<1 for v in (bid,ask)) and bid<=ask
     q['age']=age
     q['fresh']=valid and age<=25
     q['valid']=valid
@@ -171,6 +171,8 @@ def read_snapshot(db: Path, now: float | None=None) -> dict:
             result['markets'][tf]={'round':market,'quote':_quote(con,market,now),
                 'last_quote_seen':quote_seen,
                 'call':_last_call(con,tf,market),'reference':ref}
+            feed=safe_query(con,'SELECT checked_at,status FROM public_feed_health WHERE timeframe=?',(tf,))
+            result['markets'][tf]['feed_health']=feed[0] if feed else None
         result['ai']=_last_ai(con,result['markets']['5m']['round'])
         rows=safe_query(con, 'SELECT timeframe, COUNT(*) AS n FROM official_outcomes GROUP BY timeframe')
         result['counts']={r['timeframe']:r['n'] for r in rows if r.get('timeframe') in DURATIONS}

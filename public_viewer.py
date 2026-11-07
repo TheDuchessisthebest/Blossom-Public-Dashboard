@@ -148,8 +148,11 @@ def call_card(tf, view, snapshot_time):
         side=call['current_side']
         tier=call['current_tier']
         first=call['first_side']
-        title=f'{tier} {side}'
-        note='Original pick preserved; current pick can change in the private bot.'
+        title=f'{tier} {side}' if fresh else f'SAVED {tier} {side}'
+        note=('Public market-price signal; collected independently from your personal dashboard. '
+              'LOCKED is a price tier, not a guarantee.')
+        if not fresh:
+            note='Saved call retained; no fresh quote confirms its present strength. '+note
         strength=call.get('first_strength')
         score=(f'{float(strength)*100:.1f}¢ market-priced at first call' if isinstance(strength,(float,int)) and strength<=1 else
                f'{float(strength):.1f}¢ market-priced at first call' if isinstance(strength,(float,int)) else 'First-call price unavailable')
@@ -175,6 +178,9 @@ def call_card(tf, view, snapshot_time):
     else:
         last_update='No quote timestamp recorded yet'
     rnd_text=('Expected round end '+fmt_time(rnd['end']) if rnd else 'Current market not confirmed')
+    feed=view.get('feed_health')
+    if feed:
+        rnd_text+=' | Feed: '+str(feed.get('status','Unknown'))+' at '+fmt_time_seconds(feed.get('checked_at'))
     # Compact price-to-beat bar INSIDE each live call panel, like the admin.
     ref=view.get('reference') or {}
     mini_ref='<div class="mini-ref-note">🌿 Reference price unavailable — no fabricated price-to-beat.</div>'
@@ -250,7 +256,10 @@ def training_summary_at_top():
         models=public_training_status(MODELS)
         st.markdown('<div class="section-public">🧠 AI Training Progress</div>',unsafe_allow_html=True)
         st.markdown(training_tiles(models,snap.get('counts',{})),unsafe_allow_html=True)
-        st.caption('Experimental models · 36 rounds is a prototype threshold, not proof of accuracy.')
+        st.caption('Historical training snapshot, not live cloud retraining. 36 rounds is a prototype threshold, not proof of accuracy. Public UP/DOWN cards use market prices, not this unvalidated AI.')
+        model=models.get('5m',{})
+        if isinstance(model.get('holdout_brier'),(int,float)) and isinstance(model.get('market_brier'),(int,float)):
+            st.caption(f"5m held-out Brier score: model {model['holdout_brier']:.5f}; market {model['market_brier']:.5f} (lower is better). No demonstrated model advantage; AI promotion disabled.")
     except Exception:
         st.info('Training summary temporarily unavailable. Calls can still be viewed below.')
 
@@ -266,7 +275,7 @@ def live_view():
     if not snapshot['db_available']:
         st.info('Waiting for the private bot database. Start your normal collector on this PC; this viewer never creates or changes the database.')
         return
-    st.markdown('<div class="section-public">?? Live round countdowns</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-public">Live round countdowns</div>', unsafe_allow_html=True)
     st.iframe(timer_html(round(snapshot['time'] * 1000), snapshot['markets']), height=155, width='stretch')
     st.caption('Countdowns follow the same observed market rounds as the current calls below. Missing rounds stay unconfirmed; an ended round never rolls forward automatically.')
     timestamp=fmt_time(snapshot['time'])
