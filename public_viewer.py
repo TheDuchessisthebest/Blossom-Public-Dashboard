@@ -575,6 +575,11 @@ def training_summary_at_top():
         st.info('Training summary temporarily unavailable. Calls can still be viewed below.')
 
 
+PUBLIC_CLOCK_JS = "\n<script>\n(() => {\n  // The server time is anchored exactly ONCE. Re-anchoring during 5-second\n  // Streamlit rerenders previously caused clocks to gain/lose a second.\n  const KEY = '__blossomPublicClockV1';\n  const initialServerMs = __SERVER_MILLISECONDS__;\n  if (!window[KEY]) {\n    window[KEY] = {\n      serverAnchor: initialServerMs,\n      perfAnchor: performance.now(),\n      byRound: {},\n      timer: null\n    };\n  }\n  const state = window[KEY];\n  const tick = () => {\n    // performance.now() advances monotonically; never reset its time anchor.\n    const estimatedNow = state.serverAnchor + (performance.now() - state.perfAnchor);\n    document.querySelectorAll('[data-btc-clock]').forEach((element) => {\n      const end = Number(element.getAttribute('data-end-ms'));\n      const round = element.getAttribute('data-btc-round') || String(end);\n      if (!Number.isFinite(end) || end <= 0) {\n        element.textContent = '--:--';\n        return;\n      }\n      const rawRemaining = Math.max(0, Math.ceil((end - estimatedNow) / 1000));\n      // A rerender or system clock adjustment must never increase an ongoing\n      // round's countdown. A NEW slug gets a new countdown automatically.\n      const previous = state.byRound[round];\n      const remaining = previous === undefined ? rawRemaining : Math.min(previous, rawRemaining);\n      state.byRound[round] = remaining;\n      const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');\n      const seconds = String(remaining % 60).padStart(2, '0');\n      element.textContent = `${minutes}:${seconds}`;\n      element.classList.toggle('round-expired', remaining === 0);\n      element.title = remaining === 0 ? 'Estimated window ended; awaiting next verified market' : 'Estimated time remaining; not official cutoff';\n    });\n    // Keep only a bounded set of round states for long-running sessions.\n    const keys = Object.keys(state.byRound);\n    if (keys.length > 40) for (const k of keys.slice(0, keys.length - 20)) delete state.byRound[k];\n  };\n  if (!state.timer) state.timer = window.setInterval(tick, 150);\n  tick();\n})();\n</script>\n"
+
+def animate_public_countdowns(now):
+    st.html(PUBLIC_CLOCK_JS.replace('__SERVER_MILLISECONDS__',str(round(now*1000))),unsafe_allow_javascript=True)
+
 @st.fragment(run_every='8s')
 def live_view():
     try:
@@ -603,7 +608,7 @@ def live_view():
             st.info('Shared saved call · '+('fresh two-sided quote' if (entry.get('quote') or {}).get('fresh') else 'fresh two-sided quote unavailable; saved pick retained'))
             st.markdown(model_forecast_tile(tf,{'status':'WAIT','reason':'No verified live model forecast supplied'}),unsafe_allow_html=True)
     st.caption('Shared call feed · same saved journal as your personal dashboard · source '+fmt_time_seconds(snapshot.get('source_time',snapshot['time'])))
-    st.iframe(timer_html(round(snapshot['time']*1000),snapshot['markets']),height=155,width='stretch')
+    animate_public_countdowns(snapshot['time'])
 
 
 @st.fragment(run_every='20s')
@@ -696,8 +701,9 @@ def public_terminal():
             q=e.get('quote') or {}; fresh=q.get('fresh') and q.get('valid'); m=e.get('round')
             left=max(0,int(m['end']-snapshot['time'])) if m else 0
             up=cents(q.get('ask')) if fresh else '—'; down=cents(1-q['bid']) if fresh else '—'
-            cards.append(f'<div class="bt-card"><strong>{tf} <span style="float:right">{left//60:02}:{left%60:02}</span></strong><b class="bt-up">UP {up}</b> &nbsp; <b class="bt-down">DOWN {down}</b><small>{"Fresh quote · ask prices" if fresh else "Waiting for fresh quotes"}</small></div>')
+            cards.append(f'<div class="bt-card"><strong>{tf} <span style="float:right" data-btc-clock data-end-ms="{int(m['end']*1000) if m else 0}" data-btc-round="{escape(m['slug']) if m else tf}">{left//60:02}:{left%60:02}</span></strong><b class="bt-up">UP {up}</b> &nbsp; <b class="bt-down">DOWN {down}</b><small>{"Fresh quote · ask prices" if fresh else "Waiting for fresh quotes"}</small></div>')
         st.html('<div class="bt-markets">'+''.join(cards)+'</div>')
+        animate_public_countdowns(snapshot['time'])
         tf=st.segmented_control('Market window',['5m','15m','1h'],default='5m',key='public_terminal_tf') or '5m'
         ref=snapshot['markets'][tf].get('reference') or {}
         fmt=lambda v: f'${v:,.2f}' if isinstance(v,(int,float)) else '—'
