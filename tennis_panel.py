@@ -21,8 +21,12 @@ def view_data(path=None):
             if row and row['book']:
                 try:q=core.quote(m,json.loads(row['book']),now)
                 except core.costs.PaperRejected:pass
+            prices=[dict(at=r[0],bid=r[1],ask=r[2],mid=(r[1]+r[2])/2) for r in c.execute(
+                "select at,json_extract(features,'$.market_bid'),json_extract(features,'$.market_ask') from snapshots where slug=? and health='FRESH' and json_extract(features,'$.market_bid') is not null order by id desc limit 30",(m['slug'],))]
+            prices.reverse()
+            events=[dict(r) for r in c.execute('select at,side,tier,strength,warning from call_history where slug=? order by id desc limit 30',(m['slug'],))]
             cards.append(dict(match=m,call=calls.get(m['slug']),quote=q,quote_at=row['at'] if row else None,
-                quote_problem=row['detail'] if row else 'Waiting for book'))
+                quote_problem=row['detail'] if row else 'Waiting for book',prices=prices,events=events))
         history=[]
         for call in s['calls'][:20]:
             match=next((m for m in s['matches'] if m['slug']==call['slug']),None)
@@ -56,7 +60,7 @@ def render(public=False,data=None,path=None):
     st.html('<style>@keyframes tennisGlow{50%{box-shadow:0 0 22px #ef91bd66}} .st-key-tennis_locked{animation:tennisGlow 2.5s ease-in-out infinite;border:1px solid #ef91bd;border-radius:12px;padding:12px;color:#f7b9da}@media(prefers-reduced-motion:reduce){.st-key-tennis_locked{animation:none}}</style>')
     st.info('Tennis model: UNVALIDATED. HOLDING / CALLED / LOCKED describe market support, not calibrated AI confidence. Real tennis trading is disabled.',title='Market calls & paper research')
     if not healthy:st.warning('Background tennis heartbeat is unavailable or stale. Last-reported information is not live.')
-    st.caption('Public event/score polling ~60s; depth updates rotate across matches. Exchange quote limit 20s; live-score timestamp limit 120s. Displayed depth does not guarantee a fill.')
+    st.caption('League discovery targets 30s; exact event status targets 10s; depth prioritizes confirmed live matches. UI refreshes every 5s. Exchange quote limit 20s; match-status limit 120s. Provider delays and API cooldowns may slow updates; displayed depth never guarantees a fill.')
     if status.get('discovery_errors'):st.warning('Discovery limitations: '+', '.join(status['discovery_errors']))
     if not status.get('discovery_complete',False):st.caption('Discovery is partial or still starting; do not interpret this list as complete coverage.')
     if not public:
@@ -95,58 +99,8 @@ def render(public=False,data=None,path=None):
         st.metric('Paper wins / losses',f"{selected_account.get('wins',0)} / {selected_account.get('losses',0)}",border=True)
         closed=selected_account.get('closed',0)
         st.metric('Paper win rate',f"{selected_account.get('wins',0)/closed:.1%}" if closed else 'Pending',border=True)
-    cards=data.get('cards',[])
-    # Fresh qualifying books are interesting to observe; this is not an EV ranking.
-    cards=sorted(cards,key=lambda c:(not bool(c.get('quote')),not c['match'].get('live'),c['match'].get('start') or 0))
-    st.caption('Fresh, narrow-spread matches appear first for research attention. This is not a claim of positive expected value.')
-    if not cards:st.info('No verified ATP, WTA or ITF singles markets discovered yet. Discovery continues automatically.')
-    else:
-        lookup={c['match']['slug']:c for c in cards}
-        slug=st.selectbox('Select a tennis match',list(lookup),format_func=lambda k:' vs. '.join(lookup[k]['match']['players'])+' · '+lookup[k]['match']['league'].upper(),key='tennis_match')
-        card=lookup[slug];m=card['match'];call=card.get('call');q=card.get('quote')
-        if not public:
-            with core.connect(path) as c:c.execute('insert or replace into watchlist values(?,?)',(slug,now))
-        if q and (not healthy or not -1<=now-q['exchange_at']<=20):q=None
-        with st.container(border=True):
-            st.markdown('#### '+' vs. '.join(m['players']))
-            st.caption(m['tournament']+' · '+m['league'].upper()+' · start '+stamp(m['start']))
-            fresh_score=m.get('score_at') and -1<=now-m['score_at']<=120 and healthy
-            st.write(('LIVE' if m['live'] else 'ENDED' if m['ended'] else 'UPCOMING')+' · '+(str(m.get('score')) if fresh_score else 'Score unavailable / delayed'))
-            st.caption('Score source updated '+stamp(m.get('score_at'))+' · '+(str(round(now-m['score_at'],1))+'s old' if m.get('score_at') else 'timestamp unavailable'))
-            serving=m['players'][m['player_ids'].index(m['serving_id'])] if fresh_score and m['serving_id'] in m['player_ids'] else 'Unavailable'
-            st.write('Serving: '+serving+' · period: '+(str(m.get('period')) if fresh_score else 'Unavailable'))
-            if fresh_score and m.get('sets'):
-                rows=[]
-                for period in m['sets']:
-                    scores={str(v.get('competitorId')):v.get('score') for v in period.get('scores',[])}
-                    rows.append({'Set':period.get('label'),m['players'][0]:scores.get(m['player_ids'][0]),m['players'][1]:scores.get(m['player_ids'][1])})
-                st.dataframe(rows,hide_index=True,alt='Verified provider set and game scores')
-            if call:
-                side=call['current'];name=m['players'][0 if side=='A' else 1];tier=call['tier']
-                st.markdown('**PLAYER '+side+' WINS · '+name+' · '+tier+' 🌸**')
-                if tier=='LOCKED':
-                    with st.container(key='tennis_locked'):st.write('🌸 LOCKED market support · '+name+' · not a guarantee')
-                st.caption('UNVALIDATED · original '+m['players'][0 if call['original']=='A' else 1]+' · '+call['original_tier']+' · '+stamp(call['original_at']))
-                if call.get('warning'):st.warning(call['warning'])
-                if not q:st.warning('Call is last reported; fresh execution quote unavailable.')
-            else:st.write('Waiting for a fresh two-sided market call.')
-            if q:
-                with st.container(horizontal=True):
-                    st.metric(m['players'][0]+' · market implied',f"{q['mid']:.1%}",border=True)
-                    st.metric(m['players'][1]+' · market implied',f"{1-q['mid']:.1%}",border=True)
-                st.write(f"Player A entry ask {q['ask']:.3f}, exit bid {q['bid']:.3f} · Player B entry ask {1-q['bid']:.3f}, exit bid {1-q['ask']:.3f}")
-                st.caption('Exchange '+stamp(q['exchange_at'])+' · quote age '+f"{now-q['exchange_at']:.1f}s"+' · before modeled fees and slippage')
-            else:st.caption('No live odds: '+str(card.get('quote_problem') or 'quote is stale'))
-            with st.expander('Tennis intelligence & model evidence'):
-                st.write('Model win probability: **Unavailable — calibration and positive edge unvalidated**. Validated recommended stake: **$0.00**.')
-                st.write('Rankings from US metadata: '+str(m['rankings'])+' · surface: '+str(m.get('surface') or 'Unavailable'))
-                st.caption('Recent results, head-to-head, surface form and break-point statistics require a verified point-in-time data source. No values are fabricated or inferred from market strength.')
-            with st.expander('Market support history & settlement rules'):
-                points=data.get('charts',{}).get(slug,[])
-                if points:
-                    st.line_chart(pd.DataFrame([{'Time':datetime.fromtimestamp(p['at'],timezone.utc),'Market support at call change':p['probability']} for p in reversed(points)]).set_index('Time'),alt='Market support at tennis call changes; not model probability')
-                st.write(m['rules']);st.caption('Official US settlement only. A retirement, walkover or cancellation never becomes a guessed winner; fractional official settlement is supported.')
-                st.caption('Verified event '+m['event_id']+' · market '+m['market_id']+' · '+m['slug'])
+    from tennis_live_now import render_match_tabs
+    render_match_tabs(data,now,healthy)
     st.markdown('### Last 20 tennis calls')
     history=[]
     for c in data.get('history',[])[:20]:
