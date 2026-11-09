@@ -1,0 +1,16 @@
+[server]
+headless = true
+enableStaticServing = false
+[client]
+showErrorDetails = "none"
+[browser]
+gatherUsageStats = false
+[theme]
+base = "dark"
+primaryColor = "#ef91bd"
+backgroundColor = "#130f18"
+secondaryBackgroundColor = "#231a28"
+textColor = "#f4e6f0"
+font = "sans serif"
+baseFontSize = 14
+baseRadius = "0.75rem"
