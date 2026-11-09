@@ -23,7 +23,8 @@ def sanitize(value):
     cards=value.get('cards',[]) if isinstance(value.get('cards'),list) else []
     # Prefer fresh books and live matches; never export private position payloads.
     now=time.time()
-    cards=sorted((r for r in cards if isinstance(r,dict) and isinstance(r.get('match'),dict)),key=lambda r:(classify(r['match'],now,r.get('call'))[0]!='LIVE',not bool(r.get('quote'))))
+    category_order={'LIVE':0,'COMPLETED':1,'UPCOMING':2,'UNCONFIRMED':3}
+    cards=sorted((r for r in cards if isinstance(r,dict) and isinstance(r.get('match'),dict)),key=lambda r:(category_order[classify(r['match'],now,r.get('call'))[0]],not bool(r.get('call')),not bool(r.get('quote'))))
     if len(cards)>80:out['status']['discovery_complete']=False
     for card in cards[:80]:
         raw=card['match'];m=fields(raw,'slug market_id event_id league start received_at score_at score period serving_id live ended active closed status rules tournament surface source status_confirmed tradable special_status')
