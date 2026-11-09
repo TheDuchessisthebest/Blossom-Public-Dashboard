@@ -35,7 +35,7 @@ def call_snapshot():
         return fetch(url)
     return read_snapshot(DB)
 
-st.set_page_config(page_title='🌸 Blossom Bot · Live Viewer',page_icon='🌸',layout='wide',initial_sidebar_state='expanded')
+st.set_page_config(page_title='🌸 Blossom Bot · Live Viewer',page_icon='🌸',layout='wide',initial_sidebar_state='collapsed')
 
 st.markdown('''<style>
 :root {--pink:#ff8dc7;--line:rgba(255,169,215,.23);--pale:#ffe9f4;--soft:#d3b5c9;}
@@ -557,10 +557,24 @@ st.markdown('\n<style>\n:root {\n  --rose:#ff69b4; --rose-light:#ffc1df; --rose-
 st.markdown('\n<style>\n.strategy-strip {background:linear-gradient(90deg,rgba(255,98,166,.16),rgba(168,89,161,.07));border:1px solid #89526d;border-left:4px solid #ff72b8;padding:12px 16px;border-radius:10px;color:#ffd4eb;font-size:12px;letter-spacing:.5px;margin:4px 0 22px;}\n.lean-card {min-height:203px;background:linear-gradient(155deg,#241829,#19141e);border:1px solid rgba(255,150,209,.19);padding:21px;border-radius:16px;}\n.lean-header {display:flex;align-items:center;justify-content:space-between;color:#ffb2dc;font-weight:750;font-size:13px;}\n.lean-main {color:#fff0f8;font-size:clamp(19px,2vw,26px);font-weight:790;letter-spacing:-.5px;margin-top:14px;}\n.lean-sub {font-size:12px;color:#c8a9bb;margin-top:10px;line-height:1.6;min-height:37px;}\n.lean-price {font-size:11px;color:#f4c3da;padding-top:13px;border-top:1px solid rgba(255,255,255,.08);margin-top:12px;}\n.call-hint {font-size:11px;color:#c49ab1;margin-top:2px;margin-bottom:14px;}\n\n.call-panel {border:1px solid rgba(255,161,208,.25); background:linear-gradient(145deg,#251a29,#19151e);border-radius:16px; padding:18px 19px;min-height:260px;box-shadow:0 8px 22px rgba(0,0,0,.12);}\n.call-panel .cp-top {display:flex;align-items:center;justify-content:space-between;gap:9px;}\n.call-panel .cp-title {font-size:19px;font-weight:770;color:#fff0f8;}\n.call-panel .cp-clock {font-variant-numeric:tabular-nums;min-width:70px;text-align:right;font-size:23px;letter-spacing:.6px;font-weight:800;color:#ffd4e8;}\n.call-panel .cp-kicker {font-size:10px;letter-spacing:1.3px;font-weight:750;color:#bb98b0;margin-top:8px;}\n.call-panel .cp-main {font-size:24px;font-weight:820;color:#ff99c8;letter-spacing:-.4px;margin-top:6px;}\n.call-panel .cp-main.wait {color:#e1cbd9;}\n.call-panel .cp-main.locked {color:#ff93ca; text-shadow:0 0 12px rgba(255,125,196,.2);}\n.call-panel .cp-main.called {color:#ffc4e1;}\n.call-panel .cp-main.holding {color:#e8bbd1;}\n/* v1.9: directional colors reflect the stored call, not model accuracy. */\n.call-panel .cp-main.up,.cp-pick strong.up {color:#95e9b3;}\n.call-panel .cp-main.down,.cp-pick strong.down {color:#ff8d9e;}\n.call-panel .cp-main.locked.up {color:#9cffba;text-shadow:0 0 9px rgba(92,255,147,.62),0 0 24px rgba(83,233,140,.45);}\n.call-panel .cp-main.locked.down {color:#ff8b9b;text-shadow:0 0 9px rgba(255,110,133,.6),0 0 24px rgba(244,86,128,.4);}\n.cp-pick .call-pct{display:block;font-size:11px;font-weight:650;color:#dcc1d0;margin-top:7px;letter-spacing:0;}\n\n.cp-picks {display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px;}\n.cp-pick {padding:10px;border-radius:11px;background:rgba(255,133,191,.07);border:1px solid rgba(255,157,206,.16);}\n.cp-pick.current {background:rgba(255,138,194,.14);border-color:rgba(255,156,206,.34);}\n.cp-pick small {display:block;font-size:9px;letter-spacing:1.1px;font-weight:800;color:#d5b0c7;}\n.cp-pick strong {display:block;font-size:17px;margin-top:5px;color:#ffe1f1;}\n.cp-switch-note {font-size:11px;color:#efbfdb;margin-top:8px;}\n\n.call-panel .cp-sub {font-size:11px;color:#f7c7df;margin-top:6px;line-height:1.6;min-height:19px;}\n.call-panel .cp-caption {font-size:11px;color:#b7a3b5;margin-top:10px;}\n.cp-prob-row {display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#dbc0d0;margin-top:13px;gap:12px;}\n.cp-progress {height:7px;background:#44303e;border-radius:8px;overflow:hidden;margin-top:6px;}\n.cp-progress > div {height:100%;background:linear-gradient(90deg,#d976b8,#ff9acb);border-radius:8px;}\n.cp-late {border:1px dashed rgba(255,166,215,.21);border-radius:9px;padding:11px 12px;margin-top:15px;min-height:48px;color:#bda5b7;font-size:11px;line-height:1.55;}\n.cp-bottom {border-top:1px solid rgba(255,255,255,.08);margin-top:17px;padding-top:10px;display:flex;justify-content:space-between;color:#bfabba;font-size:11px;}\n.cp-muted {color:#a38e9f;}\n.call-panel .cp-clock.round-expired {color:#9b8293;}\n\n.paper-decision {margin-top:14px;padding:12px;border-radius:11px;border:1px solid rgba(255,151,205,.22);background:rgba(255,118,187,.065);min-height:80px;}\n.paper-decision .pd-kicker{font-size:10px;color:#dcb1cd;letter-spacing:1px;font-weight:800;}\n.paper-decision .pd-status{margin-top:4px;font-size:17px;color:#ffb0d8;font-weight:800;}\n.paper-decision .pd-status.wait{color:#d3bfd0;}\n.paper-decision .pd-explain{margin-top:6px;font-size:11px;color:#beafbe;line-height:1.5;}\n@media (prefers-reduced-motion:reduce){*{transition-duration:0.01ms!important;animation-duration:0.01ms!important;}}\n</style>\n',unsafe_allow_html=True)
 st.markdown('\n<style>\n.ai5-lab {border:1px solid rgba(249,139,202,.27);border-radius:19px;padding:20px 23px;\n  background:linear-gradient(130deg,#211625,#17131d);box-shadow:0 8px 32px rgba(0,0,0,.15);margin-bottom:24px;}\n.ai5-top {display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;color:#ffd7ea;font-size:13px;letter-spacing:.6px;}\n.ai5-top span{color:#e3a4c6;font-size:10px;border:1px solid #72465e;padding:5px 8px;border-radius:20px;}\n.ai5-model{margin:15px 0 15px;padding:14px 16px;border-radius:12px;background:rgba(255,109,174,.065);}\n.ai5-model small,.ai5-pick small,.ai5-paper small{display:block;color:#dbaac5;font-size:10px;letter-spacing:.8px;margin-bottom:8px;}\n.ai5-model strong{font-size:clamp(22px,2.3vw,29px);}\n.ai5-model p{font-size:11px;color:#c6afc1;line-height:1.65;margin:8px 0 0;}\n.ai5-two {display:grid;grid-template-columns:1fr 1fr;gap:12px;}\n.ai5-pick {padding:14px;border:1px solid rgba(255,153,199,.17);border-radius:12px;background:#261b2a;}\n.ai5-pick strong{display:block;font-size:19px;}\n.ai5-note{font-size:11px;color:#d9c0d0;line-height:1.8;margin:12px 0;}\n.ai5-paper {border:1px solid rgba(255,159,207,.27);border-radius:12px;padding:14px;background:#301e2b;color:#ffe1ef;font-size:12px;}\n.ai5-metrics {display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;color:#d1aabe;font-size:11px;}\n.ai5-metrics b{color:#ffdbec;}\n.ai5-disclaimer{font-size:10px;color:#aa91a5;margin-top:12px;line-height:1.55;}\n@media(max-width:640px){.ai5-two{grid-template-columns:1fr}}\n</style>\n',unsafe_allow_html=True)
 st.markdown("<style>\n/* Blossom Bot floral polish; presentation only. */\n.stApp {background:\n  radial-gradient(ellipse 53% 35% at 100% 0%,rgba(239,111,174,.18),transparent 80%),\n  radial-gradient(ellipse 42% 30% at 0% 80%,rgba(126,79,147,.16),transparent 80%),\n  #110e16;}\n.hero-title {color:#ffe3f0;text-shadow:0 0 24px rgba(248,132,190,.13)}\n.hero::after{content:'✿ ❀';align-self:center;font-size:26px;letter-spacing:9px;\n  color:rgba(255,158,205,.42);transform:rotate(-12deg);pointer-events:none}\n.market-card:before,.call-panel:before{background:linear-gradient(90deg,#f67eb6,#c5a0e0,transparent)}\n.section-heading strong{color:#ffe5f2}\n.sidebar-brand{color:#ffd4e8;font-size:21px}\n.sidebar-brand::after{content:'  ✿';color:#fa9bcc;font-size:18px;opacity:.76}\n.bb-row:hover{border-color:rgba(255,166,205,.25)}\n@media(max-width:800px){.hero::after{display:none}}\n</style>",unsafe_allow_html=True)
-st.markdown('<div class="hero"><div><div class="eyebrow">POLYMARKET US / MARKET INTELLIGENCE</div><div class="hero-title"><span class="bitcoin-mark">🌸</span> <span style="color:#ff8cc5">Blossom</span> Bot</div><div class="hero-sub">Your flower-themed research garden for Bitcoin’s 5-minute, 15-minute and 1-hour markets.</div></div><div class="pills"><span class="pill">US MARKET FEEDS</span><span class="pill">PUBLIC VIEW · READ ONLY</span></div></div><div class="strategy-strip">🌸 BLOSSOM BOT · Experimental UP/DOWN tiers · BRTI movement bar · Read-only AI research</div><div class="notice"><strong>Research dashboard only.</strong> HOLDING/CALLED/LOCKED measure market price, NOT AI confidence. Quotes are observations, not guaranteed executable prices. Public visitors cannot change bot settings or place orders.</div>',unsafe_allow_html=True)
+from blossom_ui import CSS as BLOSSOM_POLISHED_CSS, compact_call
+from public_dashboard_panels import render_paper, render_results
+st.html(BLOSSOM_POLISHED_CSS)
+st.markdown('<div class="hero"><div><div class="eyebrow">POLYMARKET US / MARKET INTELLIGENCE</div><div class="hero-title"><span class="bitcoin-mark">🌸</span> <span style="color:#ff8cc5">Blossom</span> Bot</div><div class="hero-sub">Bitcoin market signals and paper research, shared read only.</div></div><div class="pills"><span class="pill">US MARKET FEEDS</span><span class="pill">PUBLIC VIEW · READ ONLY</span></div></div><div class="strategy-strip">Live market observations · Verified outcomes · Public paper research</div><div class="notice"><strong>Research dashboard only.</strong> HOLDING/CALLED/LOCKED measure market price, NOT AI confidence. Quotes are observations, not guaranteed executable prices. Public visitors cannot change bot settings or place orders.</div>',unsafe_allow_html=True)
 
 @st.fragment(run_every='30s')
 def training_summary_at_top():
+    try:
+        live=call_snapshot().get('training_summary')
+        if live:
+            for tf,row in live.items():
+                st.write(f"**{NAMES[tf]}** · {row.get('rounds_with_features',0)} usable rounds · {str(row.get('status','UNKNOWN')).replace('_',' ')}")
+                if row.get('holdout_brier') is not None:
+                    st.caption(f"Held-out Brier: model {row['holdout_brier']}; market {row.get('market_brier')} · lower is better")
+            st.caption('Current training metadata from the personal research collector. Prototype status is not trading validation.')
+            return
+    except Exception:
+        pass
     # Mirror the private admin's training ribbon; never read credentials/models.
     try:
         snap=read_snapshot(DB)
@@ -590,10 +604,6 @@ def live_view():
     if not snapshot['db_available']:
         st.info('Waiting for the private bot database. Start your normal collector on this PC; this viewer never creates or changes the database.')
         return
-    st.markdown('<div class="section-heading"><strong>🌸 Five-minute AI forecast & paper lab</strong><small>Independent outcome model · not market-price tiers</small></div>',unsafe_allow_html=True)
-    # The shared feed does not publish a validated independent AI forecast.
-    st.markdown(render_ai5m_lab({'status':'WAIT','reason':'No current independent AI forecast supplied by the shared feed'},None,None,{'status':'READ ONLY'},True,False,snapshot['markets']['5m'].get('round'),None,snapshot['time'],{'resolved':0}),unsafe_allow_html=True)
-    st.caption('Live forecast and paper metrics are unavailable in the shared feed; no historical score is presented as current.')
     st.markdown('<div class="section-heading"><strong>Live UP / DOWN calls · all three markets</strong><small>Experimental market-price tiers, not a trained model</small></div>',unsafe_allow_html=True)
     columns=st.columns(3,gap='medium')
     for tf,col in zip(NAMES,columns):
@@ -602,11 +612,19 @@ def live_view():
             signal={'status':'WAIT','reason':'Waiting for a fresh two-sided quote','mapping_verified':bool(call and call.get('mapping_verified'))}
             if entry.get('quote',{} ) and entry['quote'].get('fresh'):
                 signal['reason']='Shared personal-dashboard saved call; current strength requires fresh quotes.'
-            st.markdown(call_panel(tf,entry.get('round'),public_quote(entry),signal,snapshot['time'],[],False,
-                journal_state=call if current else None,previous_saved=call if call and not current else None,
-                brti_bar_html=reference_bar(entry.get('reference') or {})),unsafe_allow_html=True)
-            st.info('Shared saved call · '+('fresh two-sided quote' if (entry.get('quote') or {}).get('fresh') else 'fresh two-sided quote unavailable; saved pick retained'))
-            st.markdown(model_forecast_tile(tf,{'status':'WAIT','reason':'No verified live model forecast supplied'}),unsafe_allow_html=True)
+            st.markdown(compact_call(tf,entry.get('round'),call if current else None,public_quote(entry),snapshot['time'],entry.get('reference')),unsafe_allow_html=True)
+            with st.expander('Call details · '+NAMES[tf],expanded=False):
+                st.markdown(call_panel(tf,entry.get('round'),public_quote(entry),signal,snapshot['time'],[],False,
+                    journal_state=call if current else None,previous_saved=call if call and not current else None,
+                    brti_bar_html=reference_bar(entry.get('reference') or {})),unsafe_allow_html=True)
+                st.info('Shared saved call · '+('fresh two-sided quote' if (entry.get('quote') or {}).get('fresh') else 'fresh two-sided quote unavailable; saved pick retained'))
+                st.markdown(model_forecast_tile(tf,{'status':'WAIT','reason':'No verified live model forecast supplied'}),unsafe_allow_html=True)
+    render_paper(snapshot.get('paper_summary'),snapshot['time'])
+    with st.expander('Independent AI lab · research only',expanded=False):
+        st.markdown('<div class="section-heading"><strong>🌸 Five-minute AI forecast & paper lab</strong><small>Independent outcome model · not market-price tiers</small></div>',unsafe_allow_html=True)
+        # The shared feed does not publish a validated independent AI forecast.
+        st.markdown(render_ai5m_lab({'status':'WAIT','reason':'No current independent AI forecast supplied by the shared feed'},None,None,{'status':'READ ONLY'},True,False,snapshot['markets']['5m'].get('round'),None,snapshot['time'],{'resolved':0}),unsafe_allow_html=True)
+        st.caption('Live forecast and paper metrics are unavailable in the shared feed; no historical score is presented as current.')
     st.caption('Shared call feed · same saved journal as your personal dashboard · source '+fmt_time_seconds(snapshot.get('source_time',snapshot['time'])))
     animate_public_countdowns(snapshot['time'])
 
@@ -656,6 +674,14 @@ def market_details_view():
 
 @st.fragment(run_every='10s')
 def settled_results_view():
+    try:
+        live=call_snapshot()
+        if 'verified_results' in live:
+            render_results(live['verified_results'])
+            return
+    except Exception:
+        pass
+    st.caption('Historical saved results below; live verified-results feed unavailable.')
     # Independent refresh: a temporary market-feed error must not prevent the
     # past-settlement board from updating. Never writes to the private DB.
     st.markdown('<div class="section-public">🌸 Last 20 verified calls</div>', unsafe_allow_html=True)
@@ -719,8 +745,9 @@ def public_terminal():
 # Same navigation as the personal dashboard, with Live Trading omitted.
 dashboard_tab,terminal_tab,details_tab=st.tabs(['Dashboard','Trading terminal','Research & details'],on_change='rerun')
 with dashboard_tab:
-    training_summary_at_top()
     live_view()
+    with st.expander('Training progress & model evaluation',expanded=False):
+        training_summary_at_top()
     settled_results_view()
 with terminal_tab:
     if terminal_tab.open: public_terminal()

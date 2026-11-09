@@ -50,6 +50,8 @@ def decode(payload,now=None):
     stamp=payload.get('generated_at')
     if not isinstance(stamp,(int,float)) or not math.isfinite(stamp) or not -3<=now-stamp<=30:raise ValueError('Personal dashboard feed is offline or stale')
     clean=public_payload({**payload,'time':stamp})
+    from public_summaries import sanitize_extras
+    clean.update(sanitize_extras(payload))
     clean['time']=now;clean['source_time']=stamp
     for tf in TIMEFRAMES:
         v=clean['markets'].get(tf)
