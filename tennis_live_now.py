@@ -10,6 +10,11 @@ def stamp(at):return datetime.fromtimestamp(at,timezone.utc).strftime('%H:%M:%S 
 def money(cents):return f'${cents/100:,.2f}'
 
 
+def remember_match_tab():
+    label=st.session_state.get('tennis_match_groups','')
+    st.session_state['tennis_active_group']='COMPLETED' if 'COMPLETED' in label else 'UPCOMING' if 'UPCOMING' in label else 'LIVE'
+
+
 def match_card(card,data,group,reason,now,healthy):
     m=card['match'];slug=m['slug'];call=card.get('call') or {};q=card.get('quote')
     mode=data.get('control',{}).get('mode','EXPERIMENTAL')
@@ -96,7 +101,10 @@ def render_match_tabs(data,now,healthy):
     st.html('<style>.tn-lock{border:1px solid #ef91bd;border-radius:10px;padding:8px;color:#ffc4e2;animation:tnGlow 2.5s ease-in-out infinite}@keyframes tnGlow{50%{box-shadow:0 0 18px #ef91bd66}}@media(prefers-reduced-motion:reduce){.tn-lock{animation:none}}</style>')
     st.markdown('### 🎾 LIVE NOW — Tennis Matches')
     st.caption('Only fresh, verified in-play tennis status qualifies. An open betting market or a scheduled start never creates a LIVE label. This view refreshes automatically.')
-    live,upcoming,completed=st.tabs([f'🔴 LIVE NOW ({len(split["LIVE"])})','📅 UPCOMING','✅ COMPLETED'],key='tennis_match_groups',on_change='rerun')
+    labels=[f'🔴 LIVE NOW ({len(split["LIVE"])})','📅 UPCOMING','✅ COMPLETED']
+    selected=st.session_state.get('tennis_active_group','LIVE')
+    default=labels[('LIVE','UPCOMING','COMPLETED').index(selected)]
+    live,upcoming,completed=st.tabs(labels,default=default,key='tennis_match_groups',on_change=remember_match_tab)
     for tab,group in ((live,'LIVE'),(upcoming,'UPCOMING'),(completed,'COMPLETED')):
         with tab:
             if not tab.open:continue
