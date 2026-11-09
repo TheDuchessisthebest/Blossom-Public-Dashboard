@@ -2,7 +2,7 @@
 import math
 
 PAPER_FIELDS=('updated_at','enabled','cash_cents','available_cents','suggested_cents','realized_cents',
-              'wins','losses','closed','open_positions','max_drawdown_cents','scored_rounds','original_correct','revised_correct')
+              'wins','losses','closed','open_positions','max_drawdown_cents','scored_rounds','original_correct','revised_correct','validated_suggested_cents')
 TRAIN_FIELDS=('rounds_with_features','status','holdout_brier','market_brier','updated_utc','validated')
 
 
@@ -11,8 +11,14 @@ def finite(value):return isinstance(value,(int,float)) and not isinstance(value,
 
 def sanitize_extras(value):
     out={};paper=value.get('paper_summary')
+    if isinstance(value.get('tennis_summary'),dict):
+        from tennis_public import sanitize
+        out['tennis_summary']=sanitize(value['tennis_summary'])
     if isinstance(paper,dict) and paper.get('kind')=='SIMULATED_ONLY':
         clean={'kind':'SIMULATED_ONLY'}
+        if paper.get('mode') in ('EXPERIMENTAL','VALIDATED'):clean['mode']=paper['mode']
+        for k in ('state','reason'):
+            if isinstance(paper.get(k),str):clean[k]=paper[k][:350]
         for k in PAPER_FIELDS:
             v=paper.get(k)
             if k=='enabled' and isinstance(v,bool):clean[k]=v

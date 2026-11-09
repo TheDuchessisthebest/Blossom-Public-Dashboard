@@ -12,12 +12,15 @@ def render_paper(summary,now):
         st.info('Live paper summary is not available. No balance or performance is invented.');return
     stamp=summary.get('updated_at',0);fresh=0<=now-stamp<=20
     active=fresh and summary.get('enabled')
-    st.html('<span class="bp-status '+('' if active else 'paused')+'">'+('PAPER AUTO-TRADING ACTIVE' if active else 'PAPER AUTO-TRADING PAUSED / STALE')+'</span>')
+    title=summary.get('state','PAPER MONITORING') if active else 'PAPER AUTO-TRADING PAUSED / STALE'
+    st.html('<span class="bp-status '+('' if active else 'paused')+'">'+escape(title)+'</span>')
+    st.caption(summary.get('mode','VALIDATED')+' · PAPER ONLY'+(' · UNVALIDATED' if summary.get('mode')=='EXPERIMENTAL' else ''))
     money=lambda key:f"${summary[key]/100:,.2f}" if key in summary else '—'
     st.html(metric_strip([('Paper balance',money('cash_cents')),('Available above reserve',money('available_cents')),
         ('Suggested stake',money('suggested_cents') if fresh else '—'),('Realized P&L',money('realized_cents'))]))
     st.caption('$20 initial paper balance · $15 protected reserve · $2 maximum per bet. No real funds, orders or visitor controls.')
-    if fresh and summary.get('suggested_cents')==0:st.info('No validated positive edge qualifies for an entry.',title='NO BET RECOMMENDED · $0')
+    if fresh and summary.get('suggested_cents')==0:st.info(summary.get('reason') or 'No validated positive edge qualifies for an entry.',title='CURRENT PAPER ENTRY STATUS · $0')
+    if summary.get('mode')=='EXPERIMENTAL':st.caption('Fixed experimental budget $1 including fee reserves; validated recommendation '+money('validated_suggested_cents')+'. No optimal stake or profitable edge is assumed.')
     closed=summary.get('closed',0)
     with st.expander('Simulated performance & limitations',expanded=False):
         st.write(f"Closed trades {closed} · wins {summary.get('wins',0)} · losses {summary.get('losses',0)} · open {summary.get('open_positions',0)}")

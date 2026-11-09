@@ -743,7 +743,7 @@ def public_terminal():
         st.markdown(reference_bar(ref),unsafe_allow_html=True)
 
 # Same navigation as the personal dashboard, with Live Trading omitted.
-dashboard_tab,terminal_tab,details_tab=st.tabs(['Dashboard','Trading terminal','Research & details'],on_change='rerun')
+dashboard_tab,terminal_tab,details_tab,tennis_tab=st.tabs(['Dashboard','Trading terminal','Research & details','🎾 Live Tennis'],on_change='rerun')
 with dashboard_tab:
     live_view()
     with st.expander('Training progress & model evaluation',expanded=False):
@@ -761,3 +761,12 @@ with details_tab:
         except Exception: st.warning('Shared market feed unavailable.')
         market_details_view()
         last_5m_audit()
+
+@st.fragment(run_every='5s')
+def public_tennis_view():
+    from tennis_panel import render
+    try:render(public=True,data=call_snapshot().get('tennis_summary'))
+    except Exception:st.warning('Public tennis summary unavailable. No scores or paper results are invented.')
+
+with tennis_tab:
+    if tennis_tab.open:public_tennis_view()
